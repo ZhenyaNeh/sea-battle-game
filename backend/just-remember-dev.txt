@@ -1,0 +1,93 @@
+src/
+├── auth/
+├── users/
+├── friends/
+├── games/
+├── rooms/
+├── gameplay/        # WebSocket Gateway
+├── matchmaking/
+└── shared/          # Общие DTO, guards, utils
+
+users:
+    id
+    nickname
+    email
+    role (admin/user)
+    rating
+    password
+    createdAt
+
+user_game_infos:
+    id
+    userId
+    gameId
+    resultGame (win/lose/draw)
+    createdAt
+
+friendships:
+    id
+    userId
+    friendId
+    status (pending/accepted/rejected)
+    createdAt
+
+games:
+    id
+    nameOfTheGame
+    description
+    minPlayers
+    maxPlayers
+    rules (JSON)
+    createdAt
+
+rooms:
+    id
+    gameId
+    creatorId
+    privacy (public/private)
+    status (waiting/in_progress/comleted)
+    createdAt
+
+chats:
+    id
+    roomId
+    createdAt
+
+messages:
+    id
+    chatId
+    senderId
+    content
+    isGameEvent
+    createdAt
+
+players:
+    id
+    userId
+    roomId
+    playerActions (JSON) //ходы игрока
+    playerState (JSON)   //состояние кораблей игрока(расположение/жизни)
+    joined_at
+
+
+
+sequenceDiagram
+    participant Client
+    participant Matchmaking
+    participant Rooms
+    participant Gameplay (WebSocket)
+
+    Client->>Matchmaking: POST /matchmaking/search (gameId)
+    Matchmaking->>Rooms: Найти доступную комнату
+    Rooms-->>Matchmaking: roomId или создать новую
+    Matchmaking-->>Client: { roomId }
+    Client->>Rooms: POST /rooms/{id}/join
+    Rooms-->>Client: OK (или ошибка)
+    Client->>Gameplay: Подключение через WebSocket (/gameplay)
+    Gameplay->>Rooms: Проверить, что комната "in_progress"
+    Gameplay-->>Client: Подтверждение подключения
+    loop Игровой процесс
+        Client->>Gameplay: shipPlacement/move/chat
+        Gameplay->>Rooms: Обновить состояние (если нужно)
+        Gameplay->>Client: Рассылка событий оппоненту
+    end
